@@ -1,11 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-	"text/template"
-
+	"github.com/jacobscunn07/duckie/internal/template"
 	"github.com/spf13/cobra"
 )
 
@@ -20,24 +16,16 @@ and put the rendered file in the a directory named rendered in the current direc
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		files, err := cmd.Flags().GetStringArray("file")
-		if err != nil {
-			panic(err)
-		}
+		CheckErr(err)
 
 		dataFile, err := cmd.Flags().GetString("data")
-		if err != nil {
-			panic(err)
-		}
+		CheckErr(err)
 
 		out, err := cmd.Flags().GetString("out")
-		if err != nil {
-			panic(err)
-		}
+		CheckErr(err)
 
-		_, err = GenerateTemplates(GenerateTemplatesInput{Files: files, DataInputPath: dataFile, OutputPath: out})
-		if err != nil {
-			panic(err)
-		}
+		_, err = template.GenerateTemplates(template.GenerateTemplatesInput{Files: files, DataInputPath: dataFile, OutputPath: out})
+		CheckErr(err)
 	},
 }
 
@@ -47,48 +35,4 @@ func init() {
 	templateCmd.Flags().StringArrayP("file", "f", []string{}, "Template files to be used for rendering.")
 	templateCmd.Flags().String("data", "", "Input file containing data to be used for rendering templates.")
 	templateCmd.Flags().StringP("out", "o", "", "Output directory to create rendered files.")
-}
-
-type GenerateTemplatesInput struct {
-	Files         []string
-	DataInputPath string
-	OutputPath    string
-}
-
-type GenerateTemplatesOutput struct {
-	OutputPath string
-}
-
-func GenerateTemplates(input GenerateTemplatesInput) (*GenerateTemplatesOutput, error) {
-	var data interface{}
-
-	dataFileBytes, err := os.ReadFile(input.DataInputPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := json.Unmarshal(dataFileBytes, &data); err != nil {
-		return nil, err
-	}
-
-	for _, file := range input.Files {
-		t, err := template.ParseFiles(file)
-		if err != nil {
-			return nil, err
-		}
-
-		outF, err := os.Create(fmt.Sprintf("%s/%s", input.OutputPath, file))
-		if err != nil {
-			return nil, err
-		}
-
-		err = t.Execute(outF, data)
-		if err != nil {
-			return nil, err
-		}
-
-		outF.Close()
-	}
-
-	return &GenerateTemplatesOutput{OutputPath: input.OutputPath}, nil
 }
