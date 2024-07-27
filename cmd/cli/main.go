@@ -1,7 +1,7 @@
 package main
 
-import "fmt"
+import "github.com/jacobscunn07/duckie/internal/cmd"
 
 func main() {
-	fmt.Println("Hello from duckie!")
+	cmd.Execute()
 }
