@@ -3,8 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"os"
+	"text/template"
 
 	"github.com/spf13/cobra"
 )
@@ -34,34 +34,9 @@ and put the rendered file in the a directory named rendered in the current direc
 			panic(err)
 		}
 
-		var data interface{}
-
-		dataFileBytes, err := os.ReadFile(dataFile)
+		_, err = GenerateTemplates(GenerateTemplatesInput{Files: files, DataInputPath: dataFile, OutputPath: out})
 		if err != nil {
 			panic(err)
-		}
-
-		if err := json.Unmarshal(dataFileBytes, &data); err != nil {
-			panic(err)
-		}
-
-		for _, file := range files {
-			t, err := template.ParseFiles(file)
-			if err != nil {
-				panic(err)
-			}
-
-			outF, err := os.Create(fmt.Sprintf("%s/%s", out, file))
-			if err != nil {
-				panic(err)
-			}
-
-			err = t.Execute(outF, data)
-			if err != nil {
-				panic(err)
-			}
-
-			outF.Close()
 		}
 	},
 }
@@ -72,4 +47,48 @@ func init() {
 	templateCmd.Flags().StringArrayP("file", "f", []string{}, "Template files to be used for rendering.")
 	templateCmd.Flags().String("data", "", "Input file containing data to be used for rendering templates.")
 	templateCmd.Flags().StringP("out", "o", "", "Output directory to create rendered files.")
+}
+
+type GenerateTemplatesInput struct {
+	Files         []string
+	DataInputPath string
+	OutputPath    string
+}
+
+type GenerateTemplatesOutput struct {
+	OutputPath string
+}
+
+func GenerateTemplates(input GenerateTemplatesInput) (*GenerateTemplatesOutput, error) {
+	var data interface{}
+
+	dataFileBytes, err := os.ReadFile(input.DataInputPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal(dataFileBytes, &data); err != nil {
+		return nil, err
+	}
+
+	for _, file := range input.Files {
+		t, err := template.ParseFiles(file)
+		if err != nil {
+			return nil, err
+		}
+
+		outF, err := os.Create(fmt.Sprintf("%s/%s", input.OutputPath, file))
+		if err != nil {
+			return nil, err
+		}
+
+		err = t.Execute(outF, data)
+		if err != nil {
+			return nil, err
+		}
+
+		outF.Close()
+	}
+
+	return &GenerateTemplatesOutput{OutputPath: input.OutputPath}, nil
 }
