@@ -1,11 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
-	"html/template"
-	"os"
-
+	"github.com/jacobscunn07/duckie/internal/template"
 	"github.com/spf13/cobra"
 )
 
@@ -20,49 +16,16 @@ and put the rendered file in the a directory named rendered in the current direc
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		files, err := cmd.Flags().GetStringArray("file")
-		if err != nil {
-			panic(err)
-		}
+		CheckErr(err)
 
 		dataFile, err := cmd.Flags().GetString("data")
-		if err != nil {
-			panic(err)
-		}
+		CheckErr(err)
 
 		out, err := cmd.Flags().GetString("out")
-		if err != nil {
-			panic(err)
-		}
+		CheckErr(err)
 
-		var data interface{}
-
-		dataFileBytes, err := os.ReadFile(dataFile)
-		if err != nil {
-			panic(err)
-		}
-
-		if err := json.Unmarshal(dataFileBytes, &data); err != nil {
-			panic(err)
-		}
-
-		for _, file := range files {
-			t, err := template.ParseFiles(file)
-			if err != nil {
-				panic(err)
-			}
-
-			outF, err := os.Create(fmt.Sprintf("%s/%s", out, file))
-			if err != nil {
-				panic(err)
-			}
-
-			err = t.Execute(outF, data)
-			if err != nil {
-				panic(err)
-			}
-
-			outF.Close()
-		}
+		_, err = template.GenerateTemplates(template.GenerateTemplatesInput{Files: files, DataInputPath: dataFile, OutputPath: out})
+		CheckErr(err)
 	},
 }
 
